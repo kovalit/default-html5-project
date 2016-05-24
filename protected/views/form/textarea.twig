@@ -1,0 +1,8 @@
+{% set error = form.error(model, field, {class: 'help-block'}) %}
+{% set i18n_field = not language or language == model.defaultLanguage? field: field ~ '_' ~ language %}
+{% set htmlOptions = {placeholder: Yii.t('app', model.getAttributeLabel(field)), class: 'form-control'}|merge(htmlOptions?: {}) %}
+
+<div class="{{ wrapperClass|default('form-group') }}">
+	{{ form.textArea(model, i18n_field, htmlOptions) }}
+	{{ error }}
+</div>

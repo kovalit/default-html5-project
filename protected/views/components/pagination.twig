@@ -1,0 +1,80 @@
+{#
+Вид: <--  1  …  10  11  12  [13]  14  15  16  …  71  -->
+
+На вход шаблон принимает следующие параметры:
+showedPages - кол-во страниц между … и … (по-умолчанию 7)
+lastPage - номер последней страницы
+currentPage - текущая страница
+prevText - текст кнопки "следующая страница" (по-умолчанию "Следующая")
+nextText - текст кнопки "предыдущая страница" (по-умолчанию "Предыдущая")
+separatorText - текст разделителя (по-умолчанию "…")
+#}
+
+{% set hideLoadMoreButton = hideLoadMoreButton|default(not(currentPage == 1)) %}
+{% set hidePages = hidePages|default(false) %}
+{% set route = route|default(App.controller.id ~ '/' ~ App.controller.action.id) %}
+
+{#
+{% if not hideLoadMoreButton and lastPage > 1 %}
+	<button data-route="{{ routeListParams? this.createUrl(route, routeListParams): this.createUrl(route) }}" data-current-page="{{ currentPage }}" data-perPage="{{ perPage }}" id="load-more-posts" class="button button_white">{{ loadMoreText|default('Load more') }}</button>
+{% endif %}
+#}
+
+{% if not hidePages %}
+	{% macro link(route, routeParams, page, text, class) %}
+		<li class="pagination__link {{ class }}">
+			<a href="{{ App.createUrl(route, routeParams|default({})|merge({page: page})) }}">{{ text|default(page) }}</a>
+		</li>
+	{% endmacro %}
+	{% macro page(route, routeParams, page, currentPage, text, class) %}
+		{% if page != currentPage %}
+			{{ _self.link(route, routeParams, page, text, class) }}
+		{% elseif not class %}
+			{# if we bring class variable it means that it is a left/right arrow. It doesn't need here #}
+			<li class="pagination__link active"><span>{{ text|default(page) }}</span></li>
+		{% endif %}
+	{% endmacro %}
+
+	{% if lastPage > 1 %}
+		{# calculate paginator parameters #}
+		{% set showedPages = showedPages|default(7) %}
+		{% set showedPagesDelta = (showedPages // 2) %}
+		{% set delta1 = page - showedPagesDelta %} {# разница между переданной страницей и половиной видимых страниц #}
+		{% set delta2 = lastPage - showedPages %} {# разница между последней страницей и видимыми страницами #}
+
+		{% set startPage = (delta1 > delta2 and delta2 >= 0? delta2 + 1: (delta1 <= delta2 and delta1 > 0? delta1: 1)) %}
+		{% set lastShowedPage = ((startPage + showedPages) <= lastPage? startPage + showedPages - 1: lastPage) %}
+
+		{# render #}
+		<ul class="pagination">
+			{# рисуем ссылку "предыдущая страница" #}
+			{#{{ _self.page(route, routeParams, currentPage - 1, 0, prevText|default('Previous'), 'pagination__prev') }}#}
+
+			{% if currentPage > showedPagesDelta + 1 %}
+				{# ссылка на первую сраницу #}
+				{{ _self.page(route, routeParams, 1, currentPage) }}
+				{# выводим разделитель после первой страницы, если мы где-то в середине #}
+				{% if (currentPage - 1) > showedPagesDelta + 1 %}
+					<li class="pagination__link pagination__link_separator"><span>{{ separatorText|default('…') }}</span></li>
+				{% endif %}
+			{% endif %}
+
+			{# выводим showedPages ссылок вокруг текущей страницы #}
+			{#{% for p in startPage..lastShowedPage %}#}
+			{% for p in (currentPage - showedPagesDelta > 0? currentPage - showedPagesDelta: 1)..(currentPage + showedPagesDelta <= lastPage? currentPage + showedPagesDelta: lastPage) %}
+				{{ _self.page(route, routeParams, p, currentPage) }}
+			{% endfor %}
+
+			{# выводим ссылку на последнюю страницу и, в случае необходимости, выводим разделитель  #}
+			{% if currentPage + showedPagesDelta < lastPage %} {#if lastPage != lastShowedPage #}
+				{% if (currentPage + showedPagesDelta + 1) < lastPage %}
+					<li class="pagination__link pagination__link_separator"><span>{{ separatorText|default('…') }}</span></li>
+				{% endif %}
+				{{ _self.page(route, routeParams, lastPage, currentPage) }}
+			{% endif %}
+
+			{# рисуем ссылку "следуюшая страница" #}
+			{#{{ _self.page(route, routeParams, currentPage + 1, lastPage + 1, nextText|default('Next'), 'pagination__next') }}#}
+		</ul>
+	{% endif %}
+{% endif %}
